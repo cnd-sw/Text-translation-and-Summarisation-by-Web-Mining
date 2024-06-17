@@ -1,0 +1,111 @@
+The provided code performs web scraping, translation, and text summarization using various Python libraries. Here’s a breakdown of what is happening in the code and the purpose of each library:
+
+1. **Importing Libraries**:
+    - `requests`: Used to make HTTP requests to retrieve web content.
+    - `BeautifulSoup` from `bs4`: Used for parsing HTML and XML documents to extract data.
+    - `googletrans` (`Translator`, `constants`): Used for translating text between languages.
+    - `spacy`: Used for natural language processing tasks like tokenization, POS tagging, and stop words.
+    - `Counter` from `collections`: Used to count the frequency of elements.
+    - `nlargest` from `heapq`: Used to get the n largest elements from a dataset.
+
+2. **Web Scraping**:
+    - A request is made to the specified URL using `requests.get()`.
+    - The response status code is printed to check if the request was successful (`200` indicates success).
+    - The content of the response is printed to see the HTML content retrieved from the URL.
+
+    ```python
+    r = requests.get('https://www.divyabhaskar.co.in/utility/automobile/news/this-suv-will-also-run-on-e-20-fuel-the-information-was-leaked-before-the-launch-131086628.html')
+    print(r)
+    print(r.content)
+    ```
+
+3. **Loading spaCy Model**:
+    - The `en_core_web_sm` spaCy model is loaded to process the text.
+    
+    ```python
+    import spacy
+    nlp = spacy.load("en_core_web_sm")
+    ```
+
+4. **Processing Text**:
+    - The text is processed using the loaded spaCy model to create a `doc` object which contains the parsed content of the text.
+    - Part-of-speech (POS) tagging is performed on the text, and the tokens along with their POS tags are printed.
+
+    ```python
+    doc = nlp(text_final)
+    print([(w.text, w.pos_) for w in doc])
+    len(list(doc.sents))
+    ```
+
+5. **Filtering Tokens**:
+    - Keywords are filtered out by excluding stop words and punctuation.
+    - Only specific POS tags (`PROPN`, `ADJ`, `NOUN`, `VERB`, `AUX`, `CCONJ`, `DET`) are considered as keywords.
+    - The frequency of these keywords is counted using `Counter`.
+
+    ```python
+    keyword = []
+    stopwords = list(STOP_WORDS)
+    pos_tag = ['PROPN','ADJ','NOUN','VERB','AUX','CCONJ','DET']
+
+    for token in doc:
+      if(token.text in stopwords or token.text in punctuation):
+        continue
+      if(token.pos_ in pos_tag):
+        keyword.append(token.text)
+
+    freq_word = Counter(keyword)
+    freq_word.most_common(10)
+    ```
+
+6. **Normalization**:
+    - The frequency of the keywords is normalized by dividing by the maximum frequency.
+
+    ```python
+    max_freq = Counter(keyword).most_common(1)[0][1]
+
+    for word in freq_word.keys():
+      freq_word[word] = (freq_word[word]/max_freq)
+
+    freq_word.most_common(10)
+    ```
+
+7. **Weighing Sentences**:
+    - The sentences are scored based on the frequency of keywords they contain.
+    - A dictionary `sent_strength` is used to store the sentence scores.
+
+    ```python
+    sent_strength = {}
+
+    for sent in doc.sents:
+      for word in sent:
+        if word.text in freq_word.keys():
+          if sent in sent_strength.keys():
+            sent_strength[sent]+=freq_word[word.text]
+          else:
+            sent_strength[sent]=freq_word[word.text]
+
+    print(sent_strength)
+    ```
+
+8. **Summarizing the Text**:
+    - The top 5 sentences with the highest scores are selected to form the summary.
+    - The selected sentences are joined to form the final summary.
+
+    ```python
+    summarized_sentences = nlargest(5,sent_strength,key=sent_strength.get)
+    print(summarized_sentences)
+
+    final_sentences = [w.text for w in summarized_sentences]
+    summary = ' '.join(final_sentences)
+    print(summary)
+    ```
+
+### Libraries Used:
+- **`requests`**: To fetch web content.
+- **`BeautifulSoup`**: To parse and extract data from HTML.
+- **`googletrans`**: To translate text (not used in the current code but imported).
+- **`spacy`**: For natural language processing tasks.
+- **`collections.Counter`**: To count and find the most common elements.
+- **`heapq.nlargest`**: To find the top n elements from a dataset.
+
+The code effectively scrapes web content, processes the text to extract keywords, weighs sentences based on keyword frequency, and summarizes the text based on sentence scores.
